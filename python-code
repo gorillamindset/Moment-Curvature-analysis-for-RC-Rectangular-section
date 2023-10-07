@@ -1,0 +1,106 @@
+import math
+import matplotlib.pyplot as plt
+### Layer by Layer analysis of Rectangular Beam c/s - Normal RC  
+### Units are in N-mm 
+Es = 200000             # Young's modulus (MPa)
+fc = 40                 # Concrete compressive strength (MPa) 
+fy = 500                # Yield strength (MPa)
+B = 200                 # Width of the beam (mm)
+D = 500                 # Total depth of the beam (mm)
+dc = 50                 # Effective cover to the R/f (mm)
+d = D - dc              # Effective depth of the beam (mm)
+Ptc = 0/100             # Percentage of compression steel
+Ptt = 0.4/100           # Percentage of Tension steel
+Asc = Ptc*B*D           # Area of Compression steel reinforcement (mm^2)
+Ast = Ptt*B*D           # Area of Tension steel reinforcement (mm^2)
+ec = 0.002                     # Ultimate 44concrete strain
+fck = (1.25*fc-1.65*5)         # Characteristic comp strength (MPa)
+Ec = 5000*math.sqrt(fck)       # Modulus of elasticity of Concrete (MPa)
+fcr = 0.7*math.sqrt(fck)       # modulus of rupture
+ecr = fcr/Ec                   # rupture strain (at first tensile crack)
+A = B*D                        # Area of cross section
+# I = B*D^3/12                 # Moment of Inertia of the section
+# Y = D/2                      # Max depth of N.A.
+# Z = I/Y                      # Section modulus
+t = 5                          # Thickness of each layer (mm)
+ectop = 0.002 
+n = d/t                        # No of Layers
+print(n)
+
+
+def parameters():
+    xu = d
+    ectop = 0.001
+    list_phi = []
+    list_Mu = []
+    while ectop < 0.0035:
+        while True:
+            sum_Cc = 0
+            sum_Ct = 0
+            sum_Ts = 0
+            sum_Mu1 = 0
+            counter = 0
+            while counter <= n:
+                counter += 1
+                y_bar = xu - ((counter-1)*t + (t/2))
+                ecl = (ectop/xu) * y_bar
+                if ecl > 0:
+                    fcc = fc * (((2*(ecl/ec))-(math.pow((ecl/ec),2))))
+                else:
+                    fcc = 0
+                if ectop < ecr:
+                    if ecl < 0:
+                        fct = ecl * Ec
+                    else:
+                        fct = 0
+                else:
+                    fct = 0
+
+                est = ((ectop/xu)*(d-xu))
+                esc = ((ectop/xu)*(xu-dc))
+                if est < (fy/Es):
+                    fs = est * Es
+                else:
+                    fs = fy
+                    
+                if esc < (fy/Es):
+                    fsc = esc * Es
+                else:
+                    fsc = fy
+                
+                Cc = fcc * B * t
+                Ct = fct * B * t
+                
+                Cs = fsc * Asc
+                Ts = fs * Ast
+
+                Mu1 = (Cc * y_bar) + (Ct * y_bar)
+                sum_Mu1 += Mu1
+                
+                sum_Cc += Cc
+                sum_Ct += Ct
+
+            Mu2 = (Ts * (d-xu))
+            Mu3 = (Cs * (xu-dc))
+            Mu = (sum_Mu1 + Mu2 + Mu3)/1e6
+
+
+            if abs(sum_Cc + sum_Ct) + abs(Cs) - abs(Ts) < 1:
+                #print(f"for ectop:{ectop}, parameters: xu:{xu},sum_Cc:{sum_Cc},sum_Ct:{sum_Ct},Mu:{Mu}")
+
+                break
+            xu -= 0.001 * d
+        ectop += 0.00001
+        phi = ectop/xu*(1e6)
+        print(f"for ectop:{ectop}, parameters: xu:{xu},sum_Cc:{sum_Cc/1000},sum_Ct:{sum_Ct/1000},Cs:{Cs/1000},Mu:{Mu},phi:{phi}")
+        list_phi.append(phi)
+        list_Mu.append(Mu)
+    plt.plot(list_phi,list_Mu)
+    plt.show()
+
+
+
+parameters()
+
+
+
